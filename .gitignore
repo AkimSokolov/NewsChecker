@@ -2,4 +2,4 @@ data sets/
 logo/
 .venv/
 __pycache__/
-.env/
+.env
