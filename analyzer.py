@@ -1,0 +1,116 @@
+import numpy as np
+import os
+from dotenv import load_dotenv
+import requests
+import joblib
+from urllib.parse import urlparse
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
+from db import Database
+from text_processor import TextProcessor
+from message_processor import MessageProcessor
+
+class Analyzer:
+    def __init__(self):
+        load_dotenv()
+        np.random.seed(42)
+        self.model = SentenceTransformer("sentence-transformers/all-mpnet-base-v2")
+        self.stop_words = set(stopwords.words("english"))
+        self.lemmatizer = WordNetLemmatizer()
+        self.db = Database()
+        self.textProcessor = TextProcessor()
+        self.messageProcessor = MessageProcessor()
+        self.provokingModel = joblib.load("./models/fake_news_model.pkl")
+        self.vectorizer = joblib.load("./models/tfidf_vectorizer.pkl")
+
+
+
+    def verify_news_by_link(self, url):
+        title, text, date = self.textProcessor.parse(url)
+        title = self.textProcessor.preprocess_text(title)
+        text = self.textProcessor.preprocess_text(text)
+
+        news_reliability_score = self.__get_news_reliability(title, text, date)
+        source_reliability_score = self.__get_source_reliability(url)
+        provoking_rate = self.__get_provoking_rate(text)
+
+        return self.messageProcessor.link_analysis(news_reliability_score, source_reliability_score, provoking_rate)
+  
+    def verify_news_by_text(self, text):
+        date = self.textProcessor.extract_date_from_text(text)
+        text = self.textProcessor.preprocess_text(text)
+
+        news_reliability_score = self.__get_news_reliability(text, text, date)
+        provoking_rate = self.__get_provoking_rate(text)
+
+        return self.messageProcessor.text_analysis(news_reliability_score, provoking_rate)
+    
+    def __get_source_reliability(self, url):
+        parsed_url = urlparse(url).netloc
+        domain = parsed_url.replace("www.", "")
+
+        if self.db.check_in_reliable_sources(domain):
+            return 1.0
+
+        if self.db.check_in_satirical_sources(domain):
+            return 2.0
+
+        if self.db.check_in_unreliable_sources(domain):
+            return 0.0
+
+        return 0.5
+
+    def __get_news_reliability(self, title, text, date):
+        related_news = self.__search_fact_on_google(title, date)
+        if related_news:
+            reliability_score = self.__compare(text, related_news)
+            return reliability_score
+        return 0
+
+    def __compare(self, text, news):
+        text_embeddings = self.model.encode([text])
+        news_embeddings = self.model.encode(news)
+
+        similarities = cosine_similarity(text_embeddings, news_embeddings).flatten()
+        best_match_index = int(np.argmax(similarities))
+        best_match_score = similarities[best_match_index]
+
+        return best_match_score
+
+    def __get_provoking_rate(self, text):
+
+        text_vectorized = self.vectorizer.transform([text])
+        prediction = self.provokingModel.predict_proba(text_vectorized)[0][1]
+        return prediction
+
+    def __search_fact_on_google(self, query, date):
+        api_key = os.getenv("GOOGLEAPI")
+        search_engine_id = os.getenv("SEARCHKEY")
+        sources = ["bbc.com", "reuters.com", "cnn.com"]
+        found_news = []
+
+        for source in sources:
+            url = f"https://www.googleapis.com/customsearch/v1?q={query}&key={api_key}&cx={search_engine_id}&siteSearch={source}"
+            if date:
+                url += f"&dateRestrict={date}"
+
+            response = requests.get(url)
+            results = response.json()
+
+            if "items" in results:
+                for item in results["items"]:
+                    news_url = item.get("link", "")
+                    news_title, news_text, news_date = self.textProcessor.parse(news_url)
+
+                    if news_text:
+                        news_text = self.textProcessor.preprocess_text(news_text)
+                        found_news.append(news_text)
+
+        return found_news
+
+if __name__ == "__main__":
+    url = "https://www.bbc.com/news/articles/clyjv8e49deo"
+    analyzer = Analyzer()
+    analyzer.verify_news_by_link(url)
