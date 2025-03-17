@@ -28,13 +28,23 @@ class Analyzer:
 
 
     def verify_news_by_link(self, url):
+        news_analysis_check = self.db.get_news_analysis(url)
+        if news_analysis_check:
+            news_reliability_score = news_analysis_check[0]
+            source_reliability_score = news_analysis_check[1]
+            provoking_rate = news_analysis_check[2]
+            return self.messageProcessor.link_analysis(news_reliability_score, source_reliability_score, provoking_rate)
+       
         title, text, date = self.textProcessor.parse(url)
         title = self.textProcessor.preprocess_text(title)
         text = self.textProcessor.preprocess_text(text)
 
-        news_reliability_score = self.__get_news_reliability(title, text, date)
-        source_reliability_score = self.__get_source_reliability(url)
+        news_reliability_score, is_reliable = self.__get_news_reliability(title, text, date)
+        source_reliability_score = self.__get_source_reliability(url, is_reliable)
         provoking_rate = self.__get_provoking_rate(text)
+
+        self.db.add_news_analysis(url,news_reliability_score,source_reliability_score, provoking_rate)
+
 
         return self.messageProcessor.link_analysis(news_reliability_score, source_reliability_score, provoking_rate)
   
@@ -46,28 +56,48 @@ class Analyzer:
         provoking_rate = self.__get_provoking_rate(text)
 
         return self.messageProcessor.text_analysis(news_reliability_score, provoking_rate)
-    
-    def __get_source_reliability(self, url):
+
+    def process_source(self, domain, isKnown, news_reliability_score):
+        if isKnown and self.db.check_in_other_sources(domain):
+            if news_reliability_score > 0.7:
+                pass
+
+    def __get_source_reliability(self, url, is_reliable):
         parsed_url = urlparse(url).netloc
         domain = parsed_url.replace("www.", "")
+        is_known = False
 
         if self.db.check_in_reliable_sources(domain):
-            return 1.0
+            is_known = True
+            return 1.0 
 
         if self.db.check_in_satirical_sources(domain):
-            return 2.0
+            is_known = True
+            return 2.0 
 
         if self.db.check_in_unreliable_sources(domain):
-            return 0.0
+            is_known = True
+            return 0.0 
+        
+        if self.db.check_in_other_sources(domain):
+            is_known = True
+            self.db.add_to_other_sources(domain, is_reliable)
+            score = self.db.get_reliability_score(domain)
+            if score:
+                return score
+            return 0
+        
+        if not is_known:
+            self.db.add_to_other_sources(domain, is_reliable)
 
-        return 0.5
+        return 0.5 
 
     def __get_news_reliability(self, title, text, date):
         related_news = self.__search_fact_on_google(title, date)
         if related_news:
             reliability_score = self.__compare(text, related_news)
-            return reliability_score
-        return 0
+            return reliability_score, reliability_score >= 0.7
+        return 0 , False
 
     def __compare(self, text, news):
         text_embeddings = self.model.encode([text])
