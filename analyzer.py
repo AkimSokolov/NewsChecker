@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import pandas as pd
 from dotenv import load_dotenv
 import requests
 import joblib
@@ -11,6 +12,17 @@ from sklearn.metrics.pairwise import cosine_similarity
 from db import Database
 from text_processor import TextProcessor
 from message_processor import MessageProcessor
+from search_engine import SearchEngine
+
+import time
+def timer(func):
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        print(f"Функция {func.__name__} выполнялась {end_time - start_time:.6f} секунд")
+        return result
+    return wrapper
 
 class Analyzer:
     def __init__(self):
@@ -22,11 +34,12 @@ class Analyzer:
         self.db = Database()
         self.textProcessor = TextProcessor()
         self.messageProcessor = MessageProcessor()
+        self.search_engine = SearchEngine()
         self.provokingModel = joblib.load("./models/fake_news_model.pkl")
         self.vectorizer = joblib.load("./models/tfidf_vectorizer.pkl")
 
 
-
+    @timer
     def verify_news_by_link(self, url):
         news_analysis_check = self.db.get_news_analysis(url)
         if news_analysis_check:
@@ -93,7 +106,8 @@ class Analyzer:
         return 0.5 
 
     def __get_news_reliability(self, title, text, date):
-        related_news = self.__search_fact_on_google(title, date)
+        related_news = self.search_engine.search(title,date)
+        #related_news = self.__search_fact_on_google(title,date)
         if related_news:
             reliability_score = self.__compare(text, related_news)
             return reliability_score, reliability_score >= 0.7
@@ -114,11 +128,11 @@ class Analyzer:
         text_vectorized = self.vectorizer.transform([text])
         prediction = self.provokingModel.predict_proba(text_vectorized)[0][1]
         return prediction
-
+    @timer
     def __search_fact_on_google(self, query, date):
         api_key = os.getenv("GOOGLEAPI")
         search_engine_id = os.getenv("SEARCHKEY")
-        sources = ["bbc.com", "reuters.com", "cnn.com"]
+        sources = ["bbc.com", "cnn.com", "reuters.com"]
         found_news = []
 
         for source in sources:
