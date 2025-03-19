@@ -1,0 +1,1 @@
+The Telegram bot designated for helping people verify news by links and by text. The User can simply send a link or a piece of text to get an analysis that contains data about information reliability, source reliability (if the user sent a link) and provocative rate. 
