@@ -14,7 +14,6 @@ lemmatizer = WordNetLemmatizer()
 stop_words = set(stopwords.words("english"))
 
 class TextProcessor:
-    @staticmethod
     def format_date_for_google(date_str):
         try:
             date_obj = datetime.strptime(date_str, "%d %B %Y")
@@ -42,7 +41,6 @@ class TextProcessor:
         else:
             return f"y{delta.days // 365}"
 
-    @staticmethod
     def extract_date_from_text(text):
         date_patterns = [
             r"\b(\d{1,2}\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4})\b",
@@ -58,7 +56,6 @@ class TextProcessor:
                     return TextProcessor.format_date_for_google(match.group(1))
         return None
 
-    @staticmethod
     def parse(url):
         try:
             article = Article(url)
@@ -104,7 +101,6 @@ class TextProcessor:
         return None, None, None, os.getenv("ERROR_MESSAGE_PARSE")
     
 
-    @staticmethod
     def preprocess_text(text):
         text = TextProcessor.clean_text(text)
         tokens = word_tokenize(text.lower()) 
@@ -113,8 +109,8 @@ class TextProcessor:
     
     @staticmethod
     def clean_text(text):
-        text = re.sub(r"http\S+", "", text)  # Удаляем ссылки
-        text = re.sub(r"[^a-zA-Z]", " ", text)  # Оставляем только буквы
-        text = text.lower()  # Приводим к нижнему регистру
-        text = " ".join([word for word in text.split() if word not in stop_words])  # Убираем стоп-слова
+        text = re.sub(r"http\S+", "", text)  
+        text = re.sub(r"[^a-zA-Z]", " ", text)  
+        text = text.lower()  
+        text = " ".join([word for word in text.split() if word not in stop_words])  
         return text

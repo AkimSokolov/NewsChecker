@@ -10,16 +10,14 @@ class SearchEngine:
         self.search_engine_id = os.getenv("SEARCHKEY")
         self.sources = ["bbc.com", "cnn.com", "reuters.com", "financialpost.com","foxnews.com",'reuters.com']
         self.textProcessor = TextProcessor()
-        self.semaphore = asyncio.Semaphore(5)  # Ограничение числа одновременных запросов
+        self.semaphore = asyncio.Semaphore(5)  
 
     async def fetch(self, session, url):
-        """Асинхронный запрос к Google API с ограничением числа запросов."""
-        async with self.semaphore:  # Ограничиваем число одновременных запросов
+        async with self.semaphore:  
             async with session.get(url) as response:
                 return await response.json()
 
     async def __search(self, query, date):
-        """Асинхронный поиск по доверенным источникам с оптимизацией запросов и парсинга."""
         found_news = []
         async with aiohttp.ClientSession() as session:
             tasks = []
@@ -30,8 +28,6 @@ class SearchEngine:
                 tasks.append(self.fetch(session, url))
 
             responses = await asyncio.gather(*tasks)
-
-            # Обрабатываем полученные результаты
             urls_to_parse = []
             for results in responses:
                 if "items" in results:
@@ -39,7 +35,6 @@ class SearchEngine:
                         news_url = item.get("link", "")
                         urls_to_parse.append(news_url)
 
-            # Используем ThreadPoolExecutor для ускорения парсинга текста
             loop = asyncio.get_event_loop()
             with ThreadPoolExecutor() as executor:
                 parsed_results = await loop.run_in_executor(
@@ -51,7 +46,6 @@ class SearchEngine:
         return found_news
 
     def parse_multiple_urls(self, urls):
-        """Парсинг нескольких URL в потоках."""
         parsed_news = []
         for url in urls:
             news_title, news_text, news_date = self.textProcessor.parse(url)
@@ -61,5 +55,5 @@ class SearchEngine:
         return parsed_news
 
     def search(self, query, date=None):
-        """Запускает асинхронный поиск в синхронном окружении."""
+        pass
         return asyncio.run(self.__search(query, date))
