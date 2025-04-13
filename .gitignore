@@ -1,0 +1,7 @@
+data sets/
+logo/
+.venv/
+__pycache__/
+stanza_resources/
+.env
+

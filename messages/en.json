@@ -1,0 +1,20 @@
+{
+    "ERROR_MESSAGE_PARSE": "❌ Unfortunately, I couldn't extract the news from the provided link. The website might be blocking automated parsing, or the page may not contain the necessary information. Please try another link or check if the website is accessible. Alternatively, you can send me the text of the news, and I'll analyze it for you!",
+    "COMPLETE_ANALYSIS_SATIRICAL": "📢 Please note: the source of this news is known as a satirical website. The information in the article may be humorous or fictional.",
+    "COMPLETE_ANALYSIS_NEWS_RELIABILITY_GOOD": "✅ Information Reliability: High, {news_score}",
+    "COMPLETE_ANALYSIS_NEWS_RELIABILITY_BAD": "❌ Information Reliability: Low, {news_score}",
+    "COMPLETE_ANALYSIS_SOURCE_RELIABILITY_BAD": "🛑 Source Credibility: Untrusted, {source_score}",
+    "COMPLETE_ANALYSIS_SOURCE_RELIABILITY_MODERATE": "⚠️ Source Credibility: Moderate or Unknown, {source_score}",
+    "COMPLETE_ANALYSIS_SOURCE_RELIABILITY_GOOD": "🏛️ Source Credibility: Trusted, {source_score}",
+    "COMPLETE_ANALYSIS_PROVOKING_GOOD": "🔵 Provocativeness: Low, {provoking_score}",
+    "COMPLETE_ANALYSIS_PROVOKING_MODERATE": "⚡ Provocativeness: Moderate, {provoking_score}",
+    "COMPLETE_ANALYSIS_PROVOKING_BAD": "💥 Provocativeness: High, {provoking_score}",
+    "COMPLETE_ANALYSIS_FINAL_MODERATE": "🟡 Moderate probability of fake",
+    "COMPLETE_ANALYSIS_FINAL_BAD": "🔴 High probability of fake",
+    "COMPLETE_ANALYSIS_FINAL_HIGH_PROVOKING": "📣 High probability of populism",
+    "COMPLETE_ANALYSIS_FINAL_GOOD": "🟢 Low probability of fake",
+    "WELCOME_MESSAGE": "🤖 *Hello! I am a news verification bot.*\n\nSend me a link to an article or simply type a piece of text, and I will try to determine its credibility.\n\n🔎 *How to use:*\n1️⃣ Send a news link or text.\n2️⃣ I will analyze its credibility, compare it with reliable sources, and evaluate its sentiment.\n\nℹ️ For more commands, type: /help",
+    "ERROR_MESSAGE": "❌ Sorry, something went wrong! Try again later.",
+    "HELP_MESSAGE": "🛠 *Bot Help Menu*\n\nTo check a news article:\n- Send a link to a news article\n- Or send plain text of the news\n\nThe bot will analyze:\n- 🧠 Information credibility\n- 🏛️ Source reliability (only for links)\n- 💬 Provocativeness of the text\n\nUse /language to change language at any time."
+}
+  
