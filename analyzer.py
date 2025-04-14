@@ -1,15 +1,11 @@
 import numpy as np
-import os
 from dotenv import load_dotenv
-import requests
 import joblib
 from urllib.parse import urlparse
-from nltk.corpus import stopwords
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 from db import Database
 from text_processor import TextProcessor
-from message_processor import MessageProcessor
 from search_engine import SearchEngine
 from langdetect import detect
 import time
@@ -34,8 +30,6 @@ class Analyzer:
         self.db = dataBase
         self.textProcessor = textProcessor
         self.search_engine = searchEngine
-
-        # Загрузка моделей и векторизаторов для разных языков
         self.language_models = {
             "en": {
                 "model": joblib.load("./models/fake_news_model_en.pkl"),
@@ -76,11 +70,6 @@ class Analyzer:
         provoking_rate = self.__get_provoking_rate(text, language)
 
         return news_reliability_score, provoking_rate
-
-    def process_source(self, domain, isKnown, news_reliability_score):
-        if isKnown and self.db.check_in_other_sources(domain):
-            if news_reliability_score > 0.7:
-                pass
 
     def __get_source_reliability(self, url, is_reliable):
         parsed_url = urlparse(url).netloc
@@ -133,28 +122,3 @@ class Analyzer:
         prediction = model.predict_proba(text_vectorized)[0][1]
         return prediction
 
-    @timer
-    def __search_fact_on_google(self, query, date):
-        api_key = os.getenv("GOOGLEAPI")
-        search_engine_id = os.getenv("SEARCHKEY")
-        sources = ["bbc.com", "cnn.com", "reuters.com"]
-        found_news = []
-
-        for source in sources:
-            url = f"https://www.googleapis.com/customsearch/v1?q={query}&key={api_key}&cx={search_engine_id}&siteSearch={source}"
-            if date:
-                url += f"&dateRestrict={date}"
-
-            response = requests.get(url)
-            results = response.json()
-
-            if "items" in results:
-                for item in results["items"]:
-                    news_url = item.get("link", "")
-                    news_title, news_text, news_date = self.textProcessor.parse(news_url)
-                    if news_text:
-                        lang = detect(news_text)
-                        news_text = self.textProcessor.preprocess_text(news_text, lang)
-                        found_news.append(news_text)
-
-        return found_news

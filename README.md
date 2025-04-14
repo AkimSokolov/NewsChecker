@@ -1,3 +1,4 @@
+
 ### 🇺🇸 **English Version**
 
 ## Bot Functionality
@@ -23,6 +24,29 @@ The bot analyzes the news and determines three key indicators: **news reliabilit
 - `search_engine.py` – integrates with the Google Search API to find similar news articles from trusted sources  
 - `text_processor.py` – handles text processing and web page parsing  
 - `schema.sql` – contains the database schema  
+- `messages\` – contains json files with all message templates  
+- `models\` – contains trained provocativeness classification models for different languages  
+
+### Installation Note:
+
+To run the bot, you must download and prepare `stanza_resources` in your project directory.  
+Use the following code in a separate file to download models:
+
+```python
+import stanza
+stanza.download('uk') 
+stanza.download("en")
+```
+
+After downloading, locate the created `stanza_resources` folder (usually in your user directory) and move it to the root of your project.
+
+Create the following keys and store them in a `.env` file:
+- `BOT_TOKEN` – Telegram Bot token  
+- `GOOGLEAPI` – Google Search Console API key  
+- `SEARCHKEY` – Custom Search Engine ID  
+
+Also, add database credentials to the `.env`:
+- `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`
 
 ---
 
@@ -51,3 +75,22 @@ The bot analyzes the news and determines three key indicators: **news reliabilit
 - `search_engine.py` – взаємодія з Google Search API для пошуку схожих новин з перевірених джерел  
 - `text_processor.py` – обробка тексту та парсинг веб-сторінок  
 - `schema.sql` – містить структуру бази даних  
+- `messages\` – містить json файли з усіма шаблонами повідомлень для користувачів  
+- `models\` – містить навчальні моделі для оцінки провокативності для різних мов  
+
+### Інструкція з установки:
+
+Для запуску необхідно завантажити `stanza_resources` у директорію проєкту.  
+Скористайтесь наступним кодом у окремому файлі:
+
+```python
+import stanza
+stanza.download('uk') 
+stanza.download("en")
+```
+
+Після завантаження знайдіть папку `stanza_resources` у директорії користувача та перемістіть її в корінь проєкту.
+
+Створіть `.env` файл з такими параметрами:
+- `BOT_TOKEN`, `GOOGLEAPI`, `SEARCHKEY` – ключі доступу до Telegram та Google  
+- `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` – доступ до PostgreSQL

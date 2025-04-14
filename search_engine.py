@@ -12,9 +12,9 @@ class SearchEngine:
         self.api_key = os.getenv("GOOGLEAPI")
         self.search_engine_id = os.getenv("SEARCHKEY")
         self.textProcessor = textProcessor
-        self.semaphore = None  # будет создана при запуске
+        self.semaphore = None  
 
-        # Словарь источников по языкам
+
         self.language_sources = {
             "en": [
                 "bbc.com", "cnn.com", "reuters.com", 
