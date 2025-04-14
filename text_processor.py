@@ -112,16 +112,7 @@ class TextProcessor:
     
 
     def preprocess_text(self, text, lang="en"):
-        text = re.sub(r"http\\S+", "", text)
-        text = re.sub(r"[^\\w\\s]", " ", text, flags=re.UNICODE)
-        text = text.lower()
-        try:
-            stop_words = set(stopwords.words(lang))
-        except OSError:
-            stop_words = set()
-        text = " ".join([word for word in text.split() if word not in stop_words])
-
-
+ 
         nlp = self._stanza_models.get(lang)
         doc = nlp(text)
         lemmas = [

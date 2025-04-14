@@ -1,5 +1,8 @@
 import pandas as pd
 import numpy as np
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import re
 import nltk
 import joblib
@@ -8,25 +11,19 @@ from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, classification_report
+from text_processor import TextProcessor
 
-
-df = pd.read_csv("../data sets/full_news_dataset_final_v2.csv")  # Укажи корректный путь
-
+df = pd.read_csv("data sets/ukrainian_provocative_dataset_v2.csv")  # Укажи корректный путь
+textProcessor = TextProcessor()
 
 # 🔹 Загружаем стоп-слова
-nltk.download("stopwords")
-stop_words = set(stopwords.words("english"))
+
 
 # 🔹 Функция очистки текста
-def clean_text(text):
-    text = re.sub(r"http\S+", "", text)  # Удаляем ссылки
-    text = re.sub(r"[^a-zA-Z]", " ", text)  # Убираем знаки препинания
-    text = text.lower()  # Переводим в нижний регистр
-    text = " ".join([word for word in text.split() if word not in stop_words])  # Убираем стоп-слова
-    return text
+
 
 # 🔹 Очищаем текст
-df["text"] = df["text"].apply(clean_text)
+df["text"] = df["text"].apply(lambda t: textProcessor.preprocess_text(t, lang="uk"))
 
 # 🔹 Разделяем на обучающую и тестовую выборку
 X_train, X_test, y_train, y_test = train_test_split(df["text"], df["label"], test_size=0.2, random_state=42)
@@ -53,6 +50,6 @@ accuracy = accuracy_score(y_test, y_pred)
 print(accuracy)
 
 # 🔹 Сохраняем обученную модель и TF-IDF векторизатор
-joblib.dump(model, "fake_news_model.pkl")
-joblib.dump(vectorizer, "tfidf_vectorizer.pkl")
+joblib.dump(model, "models/fake_news_model_uk.pkl")
+joblib.dump(vectorizer, "models/tfidf_vectorizer_uk.pkl")
 

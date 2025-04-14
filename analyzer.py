@@ -5,7 +5,6 @@ import requests
 import joblib
 from urllib.parse import urlparse
 from nltk.corpus import stopwords
-from nltk.stem import WordNetLemmatizer
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 from db import Database
@@ -13,8 +12,8 @@ from text_processor import TextProcessor
 from message_processor import MessageProcessor
 from search_engine import SearchEngine
 from langdetect import detect
-
 import time
+
 
 def timer(func):
     def wrapper(*args, **kwargs):
@@ -25,21 +24,28 @@ def timer(func):
         return result
     return wrapper
 
+
 class Analyzer:
-
-    def __init__(self, textProcessor, dataBase, searchEngine):
+    def __init__(self, textProcessor: TextProcessor, dataBase: Database, searchEngine: SearchEngine):
         load_dotenv(".env")
-
         np.random.seed(42)
-        self.model = SentenceTransformer("sentence-transformers/all-mpnet-base-v2")
-        self.stop_words = set(stopwords.words("english"))
 
+        self.model = SentenceTransformer("sentence-transformers/all-mpnet-base-v2")
         self.db = dataBase
         self.textProcessor = textProcessor
         self.search_engine = searchEngine
-        
-        self.provokingModel = joblib.load("./models/fake_news_model.pkl")
-        self.vectorizer = joblib.load("./models/tfidf_vectorizer.pkl")
+
+        # Загрузка моделей и векторизаторов для разных языков
+        self.language_models = {
+            "en": {
+                "model": joblib.load("./models/fake_news_model_en.pkl"),
+                "vectorizer": joblib.load("./models/tfidf_vectorizer_en.pkl"),
+            },
+            "uk": {
+                "model": joblib.load("./models/fake_news_model_uk.pkl"),
+                "vectorizer": joblib.load("./models/tfidf_vectorizer_uk.pkl"),
+            },
+        }
 
     @timer
     def verify_news_by_link(self, url):
@@ -52,25 +58,22 @@ class Analyzer:
 
         title, text, date = self.textProcessor.parse(url)
         language = detect(text)
-
-        title = self.textProcessor.preprocess_text(title, language)
         text = self.textProcessor.preprocess_text(text, language)
 
-      
-
-        news_reliability_score, is_reliable = self.__get_news_reliability(title, text, date)
+        news_reliability_score, is_reliable = self.__get_news_reliability(title, text, date, language)
         source_reliability_score = self.__get_source_reliability(url, is_reliable)
-        provoking_rate = self.__get_provoking_rate(text)
+        provoking_rate = self.__get_provoking_rate(text, language)
 
         self.db.add_news_analysis(url, news_reliability_score, source_reliability_score, provoking_rate)
         return news_reliability_score, source_reliability_score, provoking_rate
 
     def verify_news_by_text(self, text):
+        language = detect(text)
         date = self.textProcessor.extract_date_from_text(text)
-        text = self.textProcessor.preprocess_text(text)
+        text = self.textProcessor.preprocess_text(text, language)
 
-        news_reliability_score = self.__get_news_reliability(text, text, date)
-        provoking_rate = self.__get_provoking_rate(text)
+        news_reliability_score, _ = self.__get_news_reliability(text, text, date, language)
+        provoking_rate = self.__get_provoking_rate(text, language)
 
         return news_reliability_score, provoking_rate
 
@@ -87,30 +90,25 @@ class Analyzer:
         if self.db.check_in_reliable_sources(domain):
             is_known = True
             return 1.0
-
         if self.db.check_in_satirical_sources(domain):
             is_known = True
             return 2.0
-
         if self.db.check_in_unreliable_sources(domain):
             is_known = True
             return 0.0
-
         if self.db.check_in_other_sources(domain):
             is_known = True
             self.db.add_to_other_sources(domain, is_reliable)
             score = self.db.get_reliability_score(domain)
-            if score:
-                return score
-            return 0
+            return score if score else 0
 
         if not is_known:
             self.db.add_to_other_sources(domain, is_reliable)
 
         return 0.5
 
-    def __get_news_reliability(self, title, text, date):
-        related_news = self.search_engine.search(title, date)
+    def __get_news_reliability(self, title, text, date, lang):
+        related_news = self.search_engine.search(title, date, lang)
         if related_news:
             reliability_score = self.__compare(text, related_news)
             return reliability_score, reliability_score >= 0.7
@@ -126,9 +124,13 @@ class Analyzer:
 
         return best_match_score
 
-    def __get_provoking_rate(self, text):
-        text_vectorized = self.vectorizer.transform([text])
-        prediction = self.provokingModel.predict_proba(text_vectorized)[0][1]
+    def __get_provoking_rate(self, text, lang):
+        model_data = self.language_models.get(lang, self.language_models["en"])
+        vectorizer = model_data["vectorizer"]
+        model = model_data["model"]
+
+        text_vectorized = vectorizer.transform([text])
+        prediction = model.predict_proba(text_vectorized)[0][1]
         return prediction
 
     @timer
@@ -150,14 +152,9 @@ class Analyzer:
                 for item in results["items"]:
                     news_url = item.get("link", "")
                     news_title, news_text, news_date = self.textProcessor.parse(news_url)
-
                     if news_text:
-                        news_text = self.textProcessor.preprocess_text(news_text)
+                        lang = detect(news_text)
+                        news_text = self.textProcessor.preprocess_text(news_text, lang)
                         found_news.append(news_text)
 
         return found_news
-
-if __name__ == "__main__":
-    url = "https://www.bbc.com/news/articles/clyjv8e49deo"
-    analyzer = Analyzer()
-    analyzer.verify_news_by_link(url)
