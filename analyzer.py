@@ -16,7 +16,7 @@ def timer(func):
         start_time = time.time()
         result = func(*args, **kwargs)
         end_time = time.time()
-        print(f"Функция {func.__name__} выполнялась {end_time - start_time:.6f} секунд")
+        print(f"Функція {func.__name__} виконувалась {end_time - start_time:.6f} секунд")
         return result
     return wrapper
 
